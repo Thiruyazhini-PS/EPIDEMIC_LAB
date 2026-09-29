@@ -717,7 +717,7 @@ export const MedicalPortalPage: React.FC<MedicalPortalPageProps> = ({
 
       {/* MODAL 1: Log New Thermal Scan */}
       {showAddThermal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[#444766]/20 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-[#9FA1FF]/40 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -793,7 +793,7 @@ export const MedicalPortalPage: React.FC<MedicalPortalPageProps> = ({
 
       {/* MODAL 2: Record Symptoms Check */}
       {showSymptomCheck && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[#444766]/20 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full border border-[#9FA1FF]/40 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -935,7 +935,7 @@ export const MedicalPortalPage: React.FC<MedicalPortalPageProps> = ({
 
       {/* MODAL 3: Log Direct Close Contact */}
       {showAddContact && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[#444766]/20 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-[#9FA1FF]/40 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">

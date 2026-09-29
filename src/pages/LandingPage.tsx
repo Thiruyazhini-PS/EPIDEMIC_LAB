@@ -94,16 +94,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterLab, onExploreD
           </span>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2.5">
           <button
             onClick={onExploreDemo}
-            className="px-3.5 py-1.5 rounded-xl bg-white/80 hover:bg-white text-xs font-semibold text-[#787B99] hover:text-[#9192E8] border border-[#9FA1FF]/25 transition-all shadow-xs"
+            className="px-4 py-1.5 rounded-full bg-white/80 hover:bg-white text-xs font-semibold text-[#787B99] hover:text-[#9192E8] border border-[#9FA1FF]/30 transition-all shadow-xs cursor-pointer"
           >
             Guided Story
           </button>
           <button
             onClick={onEnterLab}
-            className="px-4 py-1.5 rounded-xl bg-[#9192E8] hover:bg-[#8384e5] text-xs font-semibold text-white shadow-sm transition-all"
+            className="px-5 py-1.5 rounded-full bg-[#9192E8] hover:bg-[#8384e5] text-xs font-semibold text-white shadow-sm transition-all cursor-pointer"
           >
             Launch Lab
           </button>
@@ -141,7 +141,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterLab, onExploreD
             <div className="mt-5 flex items-center space-x-3 pointer-events-auto">
               <button
                 onClick={onEnterLab}
-                className="flex items-center space-x-2 px-6 py-3 rounded-2xl bg-[#9192E8] hover:bg-[#8384e5] text-white text-sm font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
+                className="flex items-center space-x-2 px-6 py-2.5 rounded-full bg-[#9192E8] hover:bg-[#8384e5] text-white text-sm font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
               >
                 <span>ENTER LAB</span>
                 <ArrowRight className="w-4 h-4" />
@@ -149,7 +149,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterLab, onExploreD
 
               <button
                 onClick={onExploreDemo}
-                className="flex items-center space-x-2 px-5 py-3 rounded-2xl bg-white/90 hover:bg-white text-[#444766] border border-[#9FA1FF]/35 text-sm font-semibold shadow-xs hover:-translate-y-0.5 transition-all cursor-pointer"
+                className="flex items-center space-x-2 px-6 py-2.5 rounded-full bg-white/90 hover:bg-white text-[#444766] border border-[#9FA1FF]/35 text-sm font-semibold shadow-xs hover:-translate-y-0.5 transition-all cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-[#9192E8]" />
                 <span>EXPLORE DEMO</span>

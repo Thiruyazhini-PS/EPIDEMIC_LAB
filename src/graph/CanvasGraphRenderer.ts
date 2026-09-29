@@ -54,6 +54,14 @@ export interface RenderOptions {
   userNodeId?: NodeId | null;
   hoveredEdgeKey?: string | null;
   surgeryMode?: boolean;
+  riskMapMode?: boolean;
+  riskScores?: Map<NodeId, 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>;
+  traceDegrees?: {
+    deg1: Set<NodeId>;
+    deg2: Set<NodeId>;
+    deg3: Set<NodeId>;
+  };
+  isolatedNodes?: Set<NodeId>;
 }
 
 export class CanvasGraphRenderer {
@@ -547,6 +555,67 @@ export class CanvasGraphRenderer {
         ctx.restore();
       }
 
+      // 2c. Contact Tracing Concentric Degrees (1st, 2nd, 3rd Degree Halos)
+      const traceDegrees = this.options.traceDegrees;
+      if (traceDegrees) {
+        if (traceDegrees.deg1.has(n.id)) {
+          ctx.save();
+          ctx.strokeStyle = '#F25F5C';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([3, 2]);
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.radius + 7, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        } else if (traceDegrees.deg2.has(n.id)) {
+          ctx.save();
+          ctx.strokeStyle = '#E5A93B';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 3]);
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.radius + 6, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        } else if (traceDegrees.deg3.has(n.id)) {
+          ctx.save();
+          ctx.strokeStyle = '#9192E8';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.radius + 5, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // 2d. Risk Heatmap Mode Halos & Override
+      const isRiskMap = this.options.riskMapMode;
+      const riskScore = this.options.riskScores?.get(n.id);
+      if (isRiskMap && riskScore) {
+        ctx.save();
+        let riskColor = '#4EBA88'; // LOW
+        if (riskScore === 'MEDIUM') riskColor = '#E5A93B';
+        else if (riskScore === 'HIGH') riskColor = '#E76F51';
+        else if (riskScore === 'CRITICAL') riskColor = '#F25F5C';
+
+        ctx.strokeStyle = riskColor;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = riskColor;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.radius + 6 + Math.sin(n.pulsePhase) * 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 2e. Isolated Node Status
+      const isIsolated = this.options.isolatedNodes?.has(n.id);
+      if (isIsolated) {
+        fillColor = '#60647E';
+        strokeColor = '#A0A4BC';
+        strokeWidth = 2;
+      }
+
       // 3. Node Circle
       let curRadius = n.radius;
       if (n.state === 'E') {
@@ -572,7 +641,8 @@ export class CanvasGraphRenderer {
       ctx.textBaseline = 'middle';
 
       let stateSymbol = '•';
-      if (n.state === 'S') stateSymbol = 'S';
+      if (isIsolated) stateSymbol = '✕';
+      else if (n.state === 'S') stateSymbol = 'S';
       else if (n.state === 'E') stateSymbol = 'E';
       else if (n.state === 'I') stateSymbol = 'I';
       else if (n.state === 'R') stateSymbol = 'R';

@@ -1,5 +1,4 @@
-// src/pages/LaboratoryPage.tsx
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   Users,
   Zap,
@@ -11,6 +10,15 @@ import {
   Sliders,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Layers,
+  Bot,
+  Cpu,
+  Radio,
+  Flame,
+  Clock,
 } from 'lucide-react';
 import { CanvasGraphRenderer } from '../graph/CanvasGraphRenderer';
 import type { VisualNode, VisualEdge } from '../graph/CanvasGraphRenderer';
@@ -23,6 +31,9 @@ import { TimelineScrubber } from '../components/TimelineScrubber';
 import { FloatingNodePanel } from '../components/FloatingNodePanel';
 import { FloatingEdgeToolbar } from '../components/FloatingEdgeToolbar';
 import { StructuralAnalysisModal } from '../components/StructuralAnalysisModal';
+import { DSAXRayPanel } from '../components/DSAXRayPanel';
+import { EpidemicAIPanel } from '../components/EpidemicAIPanel';
+import { DeepLearningRiskPanel } from '../components/DeepLearningRiskPanel';
 
 import type { PatientRegistry } from '../dataStructures/PatientRegistry';
 
@@ -31,6 +42,7 @@ interface LaboratoryPageProps {
   isSurgeryMode?: boolean;
   onToggleSurgeryMode?: () => void;
   onNavigateToCounterfactual?: () => void;
+  onNavigateToReplay?: () => void;
   patientRegistry?: PatientRegistry;
   onNavigateToSurveillance?: (nodeId?: number) => void;
   user?: { name: string; nodeId?: number } | null;
@@ -43,6 +55,7 @@ export const LaboratoryPage: React.FC<LaboratoryPageProps> = ({
   isSurgeryMode = false,
   onToggleSurgeryMode,
   onNavigateToCounterfactual,
+  onNavigateToReplay,
   patientRegistry,
   onNavigateToSurveillance,
   user,
@@ -66,6 +79,70 @@ export const LaboratoryPage: React.FC<LaboratoryPageProps> = ({
   const [density, setDensity] = useState(engine.params.contactDensity);
   const [seedCount, setSeedCount] = useState(engine.params.initialSeeds);
   const [simSpeed, setSimSpeed] = useState(engine.params.speed);
+
+  // Advanced Scientific Feature Toggles
+  const [showDSAXRay, setShowDSAXRay] = useState(false);
+  const [showRiskMap, setShowRiskMap] = useState(false);
+  const [showContactTrace, setShowContactTrace] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [showMLPanel, setShowMLPanel] = useState(false);
+  const [isToolbarCollapsed, setIsToolbarCollapsed] = useState(false);
+
+  // Dynamic Risk Score calculation for Risk Heatmap
+  const riskScores = useMemo(() => {
+    const map = new Map<number, 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>();
+    const curSnap = engine.snapshots[engine.currentDay];
+    for (const id of engine.allNodeIds) {
+      const st = curSnap ? curSnap.nodeStates.get(id) || 'S' : 'S';
+      const nbs = engine.graph.neighbors(id);
+      let infectedNeighbors = 0;
+      for (const nb of nbs) {
+        const nbSt = curSnap ? curSnap.nodeStates.get(nb) : 'S';
+        if (nbSt === 'I' || nbSt === 'E') infectedNeighbors++;
+      }
+      if (st === 'I') map.set(id, 'CRITICAL');
+      else if (st === 'E') map.set(id, 'HIGH');
+      else if (infectedNeighbors >= 2 || nbs.length > 5) map.set(id, 'HIGH');
+      else if (infectedNeighbors === 1 || nbs.length >= 3) map.set(id, 'MEDIUM');
+      else map.set(id, 'LOW');
+    }
+    return map;
+  }, [engine.snapshots, engine.currentDay, engine.allNodeIds, engine.graph, tick]);
+
+  // Sync Risk Map to Renderer
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.options.riskMapMode = showRiskMap;
+      rendererRef.current.options.riskScores = riskScores;
+      setTick(prev => prev + 1);
+    }
+  }, [showRiskMap, riskScores]);
+
+  // Sync Contact Tracing (1st, 2nd, 3rd degrees) to Renderer
+  useEffect(() => {
+    if (!rendererRef.current) return;
+    if (showContactTrace && selectedNode) {
+      const id = selectedNode.id;
+      const deg1 = new Set(engine.graph.neighbors(id));
+      const deg2 = new Set<number>();
+      const deg3 = new Set<number>();
+
+      for (const d1 of deg1) {
+        for (const d2 of engine.graph.neighbors(d1)) {
+          if (d2 !== id && !deg1.has(d2)) deg2.add(d2);
+        }
+      }
+      for (const d2 of deg2) {
+        for (const d3 of engine.graph.neighbors(d2)) {
+          if (d3 !== id && !deg1.has(d3) && !deg2.has(d3)) deg3.add(d3);
+        }
+      }
+      rendererRef.current.options.traceDegrees = { deg1, deg2, deg3 };
+    } else {
+      rendererRef.current.options.traceDegrees = undefined;
+    }
+    setTick(prev => prev + 1);
+  }, [showContactTrace, selectedNode, engine.graph]);
 
   // Sync simulation updates to canvas
   const handleSimUpdate = useCallback((sim: SimulationEngine) => {
@@ -593,9 +670,25 @@ export const LaboratoryPage: React.FC<LaboratoryPageProps> = ({
           <div className="pt-3 border-t border-[rgba(159,161,255,0.2)]">
             <button
               onClick={onNavigateToCounterfactual}
-              className="w-full flex items-center justify-between p-2 rounded-xl bg-[#D9F9DF]/80 hover:bg-[#D9F9DF] border border-[#BDEEC8] text-[11px] font-bold text-[#427A54] transition-all"
+              className="w-full flex items-center justify-between p-2 rounded-xl bg-[#D9F9DF]/80 hover:bg-[#D9F9DF] border border-[#BDEEC8] text-[11px] font-bold text-[#427A54] transition-all cursor-pointer"
             >
               <span>Fork Counterfactual Run</span>
+              <span>→</span>
+            </button>
+          </div>
+        )}
+
+        {/* Phylogenetic Replay Tree quick CTA */}
+        {onNavigateToReplay && (
+          <div className="pt-2">
+            <button
+              onClick={onNavigateToReplay}
+              className="w-full flex items-center justify-between p-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-[#9FA1FF]/40 text-[11px] font-bold text-[#9192E8] transition-all cursor-pointer"
+            >
+              <div className="flex items-center space-x-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#9192E8]" />
+                <span>Phylogenetic Replay Tree</span>
+              </div>
               <span>→</span>
             </button>
           </div>
@@ -642,6 +735,178 @@ export const LaboratoryPage: React.FC<LaboratoryPageProps> = ({
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {/* FLOATING ACTION TOOLBAR DOCK (Non-intrusive floating translucent dock above bottom timeline) */}
+        <div
+          style={{ bottom: isToolbarCollapsed ? '88px' : '94px' }}
+          className="absolute left-1/2 -translate-x-1/2 z-30 transition-all duration-300 select-none"
+        >
+          {isToolbarCollapsed ? (
+            <button
+              onClick={() => setIsToolbarCollapsed(false)}
+              className="flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/85 hover:bg-white text-[#444766] border border-[#9FA1FF]/40 shadow-lg backdrop-blur-md cursor-pointer transition-all hover:scale-105 text-xs font-mono font-bold"
+              title="Expand Lab Tools"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#9192E8] animate-pulse" />
+              <span>LAB TOOLS DOCK</span>
+              <ChevronUp className="w-3.5 h-3.5 text-[#787B99]" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-white/80 hover:bg-white/95 border border-[#9FA1FF]/35 shadow-xl backdrop-blur-xl transition-all">
+              {/* DSA X-RAY Toggle */}
+              <button
+                onClick={() => setShowDSAXRay(!showDSAXRay)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer shadow-xs ${
+                  showDSAXRay
+                    ? 'bg-[#9192E8] text-white shadow-[0_0_12px_rgba(145,146,232,0.35)]'
+                    : 'bg-white/90 hover:bg-white text-[#444766] border border-[#9FA1FF]/30 hover:border-[#9192E8]'
+                }`}
+                title="Inspect real-time Data Structures & Algorithms state"
+              >
+                <Layers className="w-3.5 h-3.5 text-[#9192E8] group-hover:text-white" />
+                <span>DSA X-RAY</span>
+              </button>
+
+              {/* SHOW RISK MAP Toggle */}
+              <button
+                onClick={() => setShowRiskMap(!showRiskMap)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer shadow-xs ${
+                  showRiskMap
+                    ? 'bg-[#E76F51] text-white shadow-[0_0_12px_rgba(231,111,81,0.35)]'
+                    : 'bg-white/90 hover:bg-white text-[#444766] border border-[#9FA1FF]/30 hover:border-[#E76F51]'
+                }`}
+                title="Toggle dynamic risk distribution heatmap"
+              >
+                <Flame className="w-3.5 h-3.5 text-[#E76F51]" />
+                <span>{showRiskMap ? 'HIDE RISK MAP' : 'SHOW RISK MAP'}</span>
+              </button>
+
+              {/* ((o)) CONTACT TRACE Toggle */}
+              <button
+                onClick={() => {
+                  setShowContactTrace(!showContactTrace);
+                  if (!showContactTrace && !selectedNode && engine.allNodeIds.length > 0) {
+                    const seedId = engine.initialSeedIds[0] ?? 0;
+                    setSelectedNode({
+                      id: seedId,
+                      label: `#${String(seedId).padStart(3, '0')}`,
+                      x: 0,
+                      y: 0,
+                      vx: 0,
+                      vy: 0,
+                      radius: 8,
+                      degree: engine.graph.neighbors(seedId).length,
+                      community: seedId % 3,
+                      state: engine.nodeHealth.get(seedId)?.state || 'I',
+                      pulsePhase: 0,
+                    });
+                  }
+                }}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer shadow-xs ${
+                  showContactTrace
+                    ? 'bg-[#3B6A84] text-white shadow-xs'
+                    : 'bg-white/90 hover:bg-white text-[#444766] border border-[#9FA1FF]/30 hover:border-[#3B6A84]'
+                }`}
+                title="Trace 1st, 2nd, and 3rd degree epidemiological contacts"
+              >
+                <Radio className="w-3.5 h-3.5 text-[#3B6A84]" />
+                <span>((o)) CONTACT TRACE</span>
+              </button>
+
+              {/* NETWORK SURGERY Toggle */}
+              {onToggleSurgeryMode && (
+                <button
+                  onClick={onToggleSurgeryMode}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer shadow-xs ${
+                    isSurgeryMode
+                      ? 'bg-[#427A54] text-white shadow-xs'
+                      : 'bg-white/90 hover:bg-white text-[#444766] border border-[#9FA1FF]/30 hover:border-[#427A54]'
+                  }`}
+                  title="Interactively cut transmission edges or isolate hubs"
+                >
+                  <Scissors className="w-3.5 h-3.5 text-[#427A54]" />
+                  <span>{isSurgeryMode ? 'EXIT SURGERY' : 'NETWORK SURGERY'}</span>
+                </button>
+              )}
+
+              {/* EPIDEMIC AI Assistant */}
+              <button
+                onClick={() => setShowAIPanel(!showAIPanel)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer shadow-xs ${
+                  showAIPanel
+                    ? 'bg-[#9192E8] text-white shadow-xs'
+                    : 'bg-white/90 hover:bg-white text-[#444766] border border-[#9FA1FF]/30 hover:border-[#9192E8]'
+                }`}
+                title="Epidemic AI Assistant"
+              >
+                <Bot className="w-3.5 h-3.5 text-[#9192E8]" />
+                <span className="hidden sm:inline">EPIDEMIC AI</span>
+              </button>
+
+              {/* O ML RISK Panel */}
+              <button
+                onClick={() => setShowMLPanel(!showMLPanel)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer shadow-xs ${
+                  showMLPanel
+                    ? 'bg-[#B47B1E] text-white shadow-xs'
+                    : 'bg-white/90 hover:bg-white text-[#444766] border border-[#9FA1FF]/30 hover:border-[#B47B1E]'
+                }`}
+                title="Transmission Risk Prediction"
+              >
+                <Cpu className="w-3.5 h-3.5 text-[#B47B1E]" />
+                <span className="hidden sm:inline">O ML RISK</span>
+              </button>
+
+              {/* Minimize handle */}
+              <button
+                onClick={() => setIsToolbarCollapsed(true)}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-[#787B99] hover:text-[#444766] transition-colors cursor-pointer ml-1"
+                title="Minimize toolbar to view background network"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* RISK HEATMAP FLOATING LEGEND (Light Glass Theme) */}
+        {showRiskMap && (
+          <div className="absolute top-18 left-1/2 -translate-x-1/2 z-20 flex items-center space-x-3 px-3.5 py-1.5 rounded-full glass-panel border border-[#9FA1FF]/30 text-[10px] font-mono text-[#444766] shadow-sm animate-in fade-in">
+            <span className="text-[#787B99] font-bold">RISK HEATMAP:</span>
+            <span className="flex items-center space-x-1">
+              <span className="w-2 h-2 rounded-full bg-[#4EBA88]" />
+              <span className="font-semibold text-[#427A54]">LOW</span>
+            </span>
+            <span className="flex items-center space-x-1">
+              <span className="w-2 h-2 rounded-full bg-[#E5A93B]" />
+              <span className="font-semibold text-[#B47B1E]">MED</span>
+            </span>
+            <span className="flex items-center space-x-1">
+              <span className="w-2 h-2 rounded-full bg-[#E76F51]" />
+              <span className="font-semibold text-[#E76F51]">HIGH</span>
+            </span>
+            <span className="flex items-center space-x-1">
+              <span className="w-2 h-2 rounded-full bg-[#F25F5C]" />
+              <span className="font-semibold text-[#D9534F]">CRITICAL</span>
+            </span>
+          </div>
+        )}
+
+        {/* CONTACT TRACE FLOATING LEGEND (Light Glass Theme) */}
+        {showContactTrace && selectedNode && (
+          <div className="absolute top-18 left-1/2 -translate-x-1/2 z-20 flex items-center space-x-3 px-3.5 py-1.5 rounded-full glass-panel border border-[#9FA1FF]/30 text-[10px] font-mono text-[#444766] shadow-sm animate-in fade-in">
+            <span className="text-[#9192E8] font-bold">CONTACT TRACE P-{String(selectedNode.id).padStart(3, '0')}:</span>
+            <span className="flex items-center space-x-1 text-[#F25F5C] font-semibold">
+              <span>● 1st Degree (Direct)</span>
+            </span>
+            <span className="flex items-center space-x-1 text-[#B47B1E] font-semibold">
+              <span>● 2nd Degree</span>
+            </span>
+            <span className="flex items-center space-x-1 text-[#9192E8] font-semibold">
+              <span>● 3rd Degree</span>
+            </span>
           </div>
         )}
 
@@ -743,6 +1008,53 @@ export const LaboratoryPage: React.FC<LaboratoryPageProps> = ({
               onClearHighlights={handleClearHighlights}
             />
           </div>
+        )}
+
+        {/* FLOATING DSA X-RAY PANEL */}
+        {showDSAXRay && (
+          <DSAXRayPanel
+            engine={engine}
+            selectedNode={selectedNode}
+            onClose={() => setShowDSAXRay(false)}
+            onSelectNodeById={(id) => {
+              const rec = engine.nodeHealth.get(id);
+              setSelectedNode({
+                id,
+                label: `#${String(id).padStart(3, '0')}`,
+                x: 0,
+                y: 0,
+                vx: 0,
+                vy: 0,
+                radius: 8,
+                degree: engine.graph.neighbors(id).length,
+                community: id % 3,
+                state: rec ? rec.state : 'S',
+                pulsePhase: 0,
+              });
+            }}
+          />
+        )}
+
+        {/* FLOATING EPIDEMIC AI PANEL */}
+        {showAIPanel && (
+          <EpidemicAIPanel
+            onClose={() => setShowAIPanel(false)}
+            onPromptSelect={(prompt) => {
+              if (prompt.includes('Trace') && selectedNode) {
+                setShowContactTrace(true);
+              } else if (prompt.includes('BFS')) {
+                setShowDSAXRay(true);
+              }
+            }}
+          />
+        )}
+
+        {/* FLOATING DEEP LEARNING RISK PANEL */}
+        {showMLPanel && (
+          <DeepLearningRiskPanel
+            selectedNode={selectedNode}
+            onClose={() => setShowMLPanel(false)}
+          />
         )}
       </main>
     </div>

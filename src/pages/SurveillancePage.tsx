@@ -329,7 +329,7 @@ export const SurveillancePage: React.FC<SurveillancePageProps> = ({
 
       {/* INDIVIDUAL PATIENT RECORD INSPECTION MODAL */}
       {selectedPatient && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#444766]/20 backdrop-blur-sm animate-in fade-in select-none">
           <div className="w-full max-w-xl glass-panel rounded-3xl p-6 border border-[#9FA1FF]/40 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-[rgba(159,161,255,0.22)]">
               <div className="flex items-center space-x-2.5">
@@ -347,7 +347,7 @@ export const SurveillancePage: React.FC<SurveillancePageProps> = ({
               </div>
               <button
                 onClick={() => setSelectedPatient(null)}
-                className="p-1.5 rounded-lg hover:bg-black/5 text-[#787B99]"
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-[#787B99]"
               >
                 ✕
               </button>
